@@ -17,9 +17,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          submodules: true
-          token: ${{ secrets.PAT }}
+        # 私有子模块需要额外凭据；Web 构建由 ensure-extension-stubs 提供公开 fallback。
       - uses: pnpm/action-setup@v4
         with:
           version: 9
