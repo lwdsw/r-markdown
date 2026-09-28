@@ -25,7 +25,27 @@ export default [
     },
   },
   {
+    files: ['worker/**/*.ts', 'functions/**/*.js'],
+    languageOptions: {
+      globals: {
+        ...globals.browser,
+        ...globals.node,
+        Request: 'readonly',
+        Response: 'readonly',
+        Headers: 'readonly',
+        URL: 'readonly',
+        fetch: 'readonly',
+      },
+    },
+  },
+  {
     files: ['**/*.{vue,ts,js}'],
+    languageOptions: {
+      globals: {
+        ...globals.browser,
+        ...globals.node,
+      },
+    },
     rules: {
       // Vue
       'vue/multi-word-component-names': 'off',
@@ -49,6 +69,6 @@ export default [
     },
   },
   {
-    ignores: ['dist/**', 'node_modules/**', '*.d.ts'],
+    ignores: ['dist/**', 'node_modules/**', 'public/mathjax/**', '*.d.ts'],
   },
 ]
