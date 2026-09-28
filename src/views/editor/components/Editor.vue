@@ -285,6 +285,12 @@ function getSelectedText(): string {
   return t.includes('\n') || t.length > 100 ? '' : t
 }
 
+function getSelection(): { from: number; to: number; text: string } {
+  if (!view) return { from: 0, to: 0, text: '' }
+  const { from, to } = view.state.selection.main
+  return { from, to, text: view.state.sliceDoc(from, to) }
+}
+
 /** 快捷键：打开查找面板（CursorMove 命令要求返回 boolean） */
 function openFindPanel(): boolean {
   emit('openFind', false)
@@ -1055,6 +1061,7 @@ defineExpose({
   replaceCurrent,
   replaceAllMatches,
   getSelectedText,
+  getSelection,
   findTotal,
   findCurrent,
   findInvalid,

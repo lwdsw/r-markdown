@@ -22,6 +22,7 @@
 - **公式 / 图表** — MathJax 数学公式 + Mermaid 流程图 / 时序图 / 甘特图
 - **桌面客户端** — 基于 Tauri 2 的 macOS（Apple Silicon）和 Windows（x64）原生应用
 - **自动更新** — 桌面客户端启动时自动检查新版本，一键下载安装
+- **AI 创作助手** — 润色、续写、摘要、提纲、智能排版、标题和审稿，统一遵守项目排版语法
 
 ## 🎨 排版能力
 
@@ -110,6 +111,21 @@ pnpm check    # ESLint + Prettier 检查
 pnpm lint     # ESLint 自动修复
 pnpm format   # Prettier 格式化
 ```
+
+### AI 配置
+
+桌面端可在设置的 AI 页面填写 OpenAI Chat Completions 兼容服务地址、模型和 API Key。API Key 使用项目现有加密机制保存在本机。
+
+Web 端只允许通过 Cloudflare Worker 代理调用，模型与密钥由服务端强制指定。部署 Worker 前配置：
+
+```bash
+wrangler secret put AI_API_KEY
+wrangler secret put AI_MODEL
+# 使用非 OpenAI 服务时可选
+wrangler secret put AI_BASE_URL
+```
+
+Worker 为 AI 路由配置了按 IP 限流；缺少密钥、模型或限流绑定时会拒绝 AI 请求。GitHub Actions 部署 Worker 还需要仓库 Secret `CLOUDFLARE_API_TOKEN`。
 
 ### 桌面客户端开发
 

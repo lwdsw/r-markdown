@@ -1,49 +1,44 @@
-name: Deploy to GitHub Pages
+name: CI
 
 on:
+  pull_request:
+  push:
+    branches: [main, develop]
   workflow_dispatch:
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
-
-concurrency:
-  group: pages
-  cancel-in-progress: true
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
-  build-and-deploy:
+  web:
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
         with:
           submodules: true
           token: ${{ secrets.PAT }}
-
       - uses: pnpm/action-setup@v4
         with:
           version: 9
-
       - uses: actions/setup-node@v4
         with:
           node-version: 24
           cache: pnpm
-
       - run: pnpm install --frozen-lockfile
+      - run: pnpm check
       - run: pnpm build
         env:
           VITE_API_PROXY: https://r-markdown-worker.410503915.workers.dev
 
-      - uses: actions/upload-pages-artifact@v3
+  worker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
-          path: dist
-
-      - id: deployment
-        uses: actions/deploy-pages@v4
+          node-version: 24
+      - run: npx --yes wrangler@4.40.2 deploy --dry-run
+        working-directory: worker

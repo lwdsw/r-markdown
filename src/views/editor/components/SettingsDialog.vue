@@ -83,6 +83,17 @@ const selectChevronStyle = {
 
 // ── 设置 tab ──
 const settingsTab = ref('basic')
+const aiModel = ref(getSetting<string>('aiModel'))
+const aiBaseUrl = ref(getSetting<string>('aiBaseUrl'))
+const aiApiKey = ref(getSetting<string>('aiApiKey'))
+const aiGuidelines = ref(getSetting<string>('aiGuidelines'))
+
+function saveAISetting(
+  key: 'aiModel' | 'aiBaseUrl' | 'aiApiKey' | 'aiGuidelines',
+  value: string,
+) {
+  setSetting(key, value.trim())
+}
 
 // 当对话框打开时，若指定了 initialTab 则自动切换；并刷新存储位置激活态
 // （用户在树下拉中切换工作区时会持久化 articleStorageMode，需在此同步回显）
@@ -727,6 +738,17 @@ async function manualCheckUpdate() {
   >
     <template #header>
       <div class="flex gap-1">
+        <button
+          class="cursor-pointer whitespace-nowrap rounded-full border-0 px-3 py-[5px] text-xs transition-colors"
+          :class="
+            settingsTab === 'ai'
+              ? 'bg-[var(--accent)] text-white'
+              : 'bg-transparent text-[#999] hover:text-[#333] dark:hover:text-[#ccc]'
+          "
+          @click="settingsTab = 'ai'"
+        >
+          AI
+        </button>
         <button
           class="cursor-pointer whitespace-nowrap rounded-full border-0 px-3 py-[5px] text-xs transition-colors"
           :class="
@@ -1771,6 +1793,56 @@ async function manualCheckUpdate() {
             添加工作区
           </button>
         </template>
+      </section>
+    </template>
+
+    <template v-if="settingsTab === 'ai'">
+      <section class="space-y-4">
+        <div>
+          <h3 class="mb-1 text-[13px] font-semibold text-[#1a1a1a] dark:text-[#e5e5e5]">AI 服务</h3>
+          <p class="text-xs leading-5 text-[#888]">
+            支持 OpenAI Chat Completions 兼容接口。Web 端必须使用服务端代理，实际模型由服务端控制。
+          </p>
+        </div>
+        <label class="block text-xs text-[#666] dark:text-[#aaa]">
+          模型名称
+          <input
+            v-model="aiModel"
+            class="mt-1 h-9 w-full rounded border border-[#ddd] bg-transparent px-3 text-sm outline-none focus:border-[var(--accent)] dark:border-[#444]"
+            placeholder="例如 gpt-5-mini"
+            @change="saveAISetting('aiModel', aiModel)"
+          />
+        </label>
+        <label class="block text-xs text-[#666] dark:text-[#aaa]">
+          API 地址
+          <input
+            v-model="aiBaseUrl"
+            class="mt-1 h-9 w-full rounded border border-[#ddd] bg-transparent px-3 text-sm outline-none focus:border-[var(--accent)] dark:border-[#444]"
+            placeholder="https://api.example.com/v1"
+            @change="saveAISetting('aiBaseUrl', aiBaseUrl)"
+          />
+        </label>
+        <label v-if="isTauri" class="block text-xs text-[#666] dark:text-[#aaa]">
+          API Key
+          <input
+            v-model="aiApiKey"
+            type="password"
+            autocomplete="off"
+            class="mt-1 h-9 w-full rounded border border-[#ddd] bg-transparent px-3 text-sm outline-none focus:border-[var(--accent)] dark:border-[#444]"
+            placeholder="仅加密保存在本机"
+            @change="saveAISetting('aiApiKey', aiApiKey)"
+          />
+        </label>
+        <label class="block text-xs text-[#666] dark:text-[#aaa]">
+          长期写作规范
+          <textarea
+            v-model="aiGuidelines"
+            rows="5"
+            class="mt-1 w-full resize-y rounded border border-[#ddd] bg-transparent p-3 text-sm leading-6 outline-none focus:border-[var(--accent)] dark:border-[#444]"
+            placeholder="例如：语气专业克制；产品名固定写作 R-Markdown；禁止使用夸张承诺。"
+            @change="saveAISetting('aiGuidelines', aiGuidelines)"
+          />
+        </label>
       </section>
     </template>
 

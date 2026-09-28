@@ -5,6 +5,10 @@
  */
 import { DEFAULT_PALETTE_SHORTCUT } from '@/utils/commandPalette'
 
+const defaultAIBaseUrl = import.meta.env.VITE_TAURI !== 'true' && import.meta.env.VITE_API_PROXY
+  ? `${import.meta.env.VITE_API_PROXY.replace(/\/$/, '')}/ai/v1`
+  : ''
+
 export interface SettingDef {
   default: unknown
   /** 适用平台，不传表示全平台 */
@@ -118,4 +122,14 @@ export const DEFAULT_SETTINGS: Record<string, SettingDef> = {
   bannedCustomWords: { default: [] },
   /** 违禁词检测：白名单（命中的词直接忽略） */
   bannedWhitelist: { default: [] },
+  /** AI 服务：openai-compatible；后续可扩展其他协议 */
+  aiProvider: { default: 'openai-compatible' },
+  /** AI 模型名称 */
+  aiModel: { default: '' },
+  /** 桌面端可直连兼容 API；Web 端应配置为服务端代理地址 */
+  aiBaseUrl: { default: defaultAIBaseUrl },
+  /** AI API Key，按敏感配置加密保存 */
+  aiApiKey: { default: '' },
+  /** 注入每次 AI 请求的品牌、语气、术语和禁用表达规范 */
+  aiGuidelines: { default: '' },
 }

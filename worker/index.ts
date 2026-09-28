@@ -1,5 +1,5 @@
 /**
- * Cloudflare Worker：GitHub API 代理
+ * Cloudflare Worker：GitHub API 与 AI 代理
  * 仅允许来自官方域名、桌面客户端和本地开发的请求。
  */
 
@@ -32,13 +32,23 @@ export default {
 
       const desktopSecret = request.headers.get('r-markdown-secret') || ''
 
+      const isAllowedWebOrigin =
+        ALLOWED_ORIGINS.includes(origin) || origin.endsWith('.r-markdown.pages.dev')
+
+      if (new URL(request.url).pathname.startsWith('/ai/')) {
+        if (!isAllowedWebOrigin) {
+          return new Response('Forbidden', { status: 403, headers: corsHeaders(origin) })
+        }
+        return forwardToAI(request, origin, env)
+      }
+
       // 桌面客户端鉴权（Tauri 不发送标准 Origin）
       if (desktopSecret && desktopSecret === DESKTOP_SECRET) {
         return forwardToGitHub(request, origin, GITHUB_TOKEN)
       }
 
       // Web 端 Origin 白名单（含 pages.dev 分支预览）
-      if (ALLOWED_ORIGINS.includes(origin) || origin.endsWith('.r-markdown.pages.dev')) {
+      if (isAllowedWebOrigin) {
         return forwardToGitHub(request, origin, GITHUB_TOKEN)
       }
 
@@ -53,6 +63,63 @@ export default {
       })
     }
   },
+}
+
+async function forwardToAI(request: Request, origin: string, env: any): Promise<Response> {
+  if (request.method !== 'POST') {
+    return new Response('Method Not Allowed', { status: 405, headers: corsHeaders(origin) })
+  }
+  const contentLength = Number(request.headers.get('content-length') || '0')
+  if (contentLength > 1_000_000) {
+    return new Response('Payload Too Large', { status: 413, headers: corsHeaders(origin) })
+  }
+
+  if (!env.AI_RATE_LIMITER || !env.AI_API_KEY || !env.AI_MODEL) {
+    return new Response('AI service is not configured', {
+      status: 503,
+      headers: corsHeaders(origin),
+    })
+  }
+  const clientIP = request.headers.get('CF-Connecting-IP') || 'unknown'
+  const rateLimit = await env.AI_RATE_LIMITER.limit({ key: clientIP })
+  if (!rateLimit.success) {
+    return new Response('Too Many Requests', { status: 429, headers: corsHeaders(origin) })
+  }
+
+  const payload: unknown = await request.json()
+  if (!payload || typeof payload !== 'object') {
+    return new Response('Invalid AI request', { status: 400, headers: corsHeaders(origin) })
+  }
+  const payloadRecord = payload as Record<string, unknown>
+  if (!Array.isArray(payloadRecord.messages)) {
+    return new Response('Invalid AI request', { status: 400, headers: corsHeaders(origin) })
+  }
+  const safePayload = {
+    ...payloadRecord,
+    model: String(env.AI_MODEL),
+    stream: false,
+  }
+
+  const incoming = new URL(request.url)
+  const baseUrl = String(env.AI_BASE_URL || 'https://api.openai.com').replace(/\/$/, '')
+  const path = incoming.pathname.replace(/^\/ai/, '')
+  const headers = new Headers({
+    Authorization: `Bearer ${env.AI_API_KEY}`,
+    'Content-Type': 'application/json',
+    Accept: 'application/json',
+  })
+  const response = await fetch(`${baseUrl}${path}`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify(safePayload),
+  })
+  const responseHeaders = new Headers(response.headers)
+  Object.entries(corsHeaders(origin)).forEach(([key, value]) => responseHeaders.set(key, value))
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers: responseHeaders,
+  })
 }
 
 async function forwardToGitHub(request: Request, origin: string, token: string): Promise<Response> {

@@ -103,6 +103,8 @@ export interface EditorExposed {
   selectedChars: number
   /** 取编辑器当前选中的单行文字，供查找面板预填（无有效选区时返回 ''） */
   getSelectedText: () => string
+  /** 返回完整选区，供 AI 等需要处理多段文本的工具使用 */
+  getSelection: () => { from: number; to: number; text: string }
   /** 应用查找条件并重算匹配高亮 */
   applyFindSpec: (spec: FindSpec) => void
   findNext: () => void

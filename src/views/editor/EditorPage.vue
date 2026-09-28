@@ -72,6 +72,7 @@ import {
   HardDrive,
   ListTree,
   Search,
+  Bot,
 } from 'lucide-vue-next'
 import { resolveIdbImages } from '@/utils/imageDB'
 import { resolveDiskImages } from '@/services/localImageDisk'
@@ -90,6 +91,7 @@ import {
 import { DraftStorage } from '@/services/DraftStorage'
 import { MaterialStorage } from '@/services/materialStorage'
 import CommandPalette from './components/CommandPalette.vue'
+import AIPanel from './components/AIPanel.vue'
 
 import Preview from './components/Preview.vue'
 import Minimap from './components/Minimap.vue'
@@ -566,6 +568,8 @@ const editorRef = ref<EditorExposed>()
 const xhsVisible = ref(false)
 const settingsVisible = ref(false)
 const settingsInitialTab = ref('')
+const aiPanelVisible = ref(false)
+const aiSelection = ref({ from: 0, to: 0, text: '' })
 const showGallery = ref(false)
 const bannedWordsVisible = ref(false)
 
@@ -947,6 +951,24 @@ function showToast(msg: string) {
   }, 1500)
 }
 
+function toggleAIPanel() {
+  aiSelection.value = editorRef.value?.getSelection() ?? { from: 0, to: 0, text: '' }
+  aiPanelVisible.value = !aiPanelVisible.value
+}
+
+function openAISettings() {
+  settingsInitialTab.value = 'ai'
+  settingsVisible.value = true
+}
+
+function applyAIResult(content: string, target: 'article' | 'selection' | 'cursor') {
+  if (target === 'article') markdown.value = content
+  else if (target === 'selection' && aiSelection.value.text) {
+    editorRef.value?.replaceRange(aiSelection.value.from, aiSelection.value.to, content)
+  } else editorRef.value?.insertAtCursor(content)
+  showToast(target === 'cursor' ? 'AI 内容已插入' : 'AI 修改已应用，可使用撤销恢复')
+}
+
 // ── 插入图片 ──
 const {
   imageInputRef,
@@ -1021,6 +1043,7 @@ function onUnlinkCloudArticle() {
 /** SettingsDialog 关闭：关闭弹窗并刷新树配置状态（含模式切换） */
 function onSettingsClose() {
   settingsVisible.value = false
+  settingsInitialTab.value = ''
   // checkConfig 内部会同步 articleStorageMode 并按需重载树
   useGitHubTree().checkConfig()
 }
@@ -1910,6 +1933,15 @@ function loadDemo() {
                   <span :style="findVisible ? { color: colors.accent } : undefined">查找</span>
                 </button>
               </BaseTooltip>
+              <BaseTooltip :text="aiPanelVisible ? '关闭 AI 助手' : '打开 AI 助手'">
+                <button
+                  class="inline-flex items-center gap-1 h-7 px-1 rounded-[5px] border-none bg-transparent transition-all duration-150 panel-action-btn text-[11px] font-medium cursor-pointer whitespace-nowrap"
+                  @click="toggleAIPanel"
+                >
+                  <Bot :size="14" class="w-3.5 h-3.5" :style="{ color: colors.accent }" />
+                  <span :style="aiPanelVisible ? { color: colors.accent } : undefined">AI</span>
+                </button>
+              </BaseTooltip>
               <BaseTooltip
                 v-if="outlineEnabled"
                 :text="outlinePanelVisible ? '隐藏大纲' : '显示大纲'"
@@ -1959,6 +1991,15 @@ function loadDemo() {
               @drop-multiple-images="handleDropMultipleImages"
               @drop-non-image="handleDropNonImage"
               @open-find="openFind"
+            />
+            <AIPanel
+              :visible="aiPanelVisible"
+              :article="markdown"
+              :selection="aiSelection.text"
+              @close="aiPanelVisible = false"
+              @apply="applyAIResult"
+              @settings="openAISettings"
+              @toast="showToast"
             />
             <input
               ref="imageInputRef"

@@ -5,3 +5,13 @@ compatibility_date = "2025-07-17"
 # 以下两个 secret 用 wrangler secret put 设置，不进仓库：
 #   wrangler secret put GITHUB_TOKEN
 #   wrangler secret put DESKTOP_SECRET
+#   wrangler secret put AI_API_KEY
+#   wrangler secret put AI_MODEL
+# 可选：wrangler secret put AI_BASE_URL（默认 https://api.openai.com）
+
+# AI 代理按来源 IP 限流。namespace_id 只需在同一 Cloudflare 账户内唯一。
+[[unsafe.bindings]]
+name = "AI_RATE_LIMITER"
+type = "ratelimit"
+namespace_id = "1001"
+simple = { limit = 10, period = 60 }
