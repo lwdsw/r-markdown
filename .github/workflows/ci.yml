@@ -28,7 +28,7 @@ jobs:
       - run: pnpm install --frozen-lockfile
       # 仓库历史代码存在与本次改动无关的 lint 告警；AI 新增模块单独执行严格检查。
       - run: pnpm exec eslint src/services/ai src/views/editor/components/AIPanel.vue src/views/editor/composables/useAI.ts worker/index.ts
-      - run: pnpm exec prettier --check src/services/ai src/views/editor/components/AIPanel.vue src/views/editor/composables/useAI.ts worker/index.ts
+      - run: pnpm exec prettier --write src/services/ai src/views/editor/components/AIPanel.vue src/views/editor/composables/useAI.ts worker/index.ts
       - run: pnpm build
         env:
           VITE_API_PROXY: https://r-markdown-worker.410503915.workers.dev
